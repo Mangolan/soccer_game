@@ -6,7 +6,7 @@ import 'dart:math' as math;
 import 'game_logic.dart';
 import '../marble_face.dart';
 
-enum WeatherType { dayClear, dayRain, cloudy, cloudyRain, night }
+enum WeatherType { dayClear, dayRain, cloudy, cloudyRain }
 
 class GameWidget extends StatefulWidget {
   final MarbleStyle leftStyle;
@@ -62,8 +62,8 @@ class _GameWidgetState extends State<GameWidget>
   bool _jump = false;
 
   WeatherType _randomWeather() {
-    // Exclude rainy presets: only dayClear, cloudy, night
-    const pool = [WeatherType.dayClear, WeatherType.cloudy, WeatherType.night];
+    // Exclude rainy presets and night: only dayClear, cloudy
+    const pool = [WeatherType.dayClear, WeatherType.cloudy];
     return pool[math.Random().nextInt(pool.length)];
   }
 
@@ -484,9 +484,7 @@ class _FieldPainter extends CustomPainter {
       g.rightGoal,
       wobbleTime: g.netWobbleRightTime,
       flip: true,
-    );
-
-    // Nighttime lights overlay in world space background (before ball)\r\n    if (weather == WeatherType.night) {\r\n      _drawNightLightsWorld(canvas, size);\r\n    }\r\n\r\n    // Ball (no gloss)
+    );    // Ball (no gloss)
     final ballShadow = Paint()..color = Colors.black.withOpacity(0.2);
     canvas.drawOval(
       Rect.fromCenter(
@@ -520,10 +518,7 @@ class _FieldPainter extends CustomPainter {
       case WeatherType.cloudy:
         return const [Color(0xFFB0BEC5), Color(0xFFECEFF1)];
       case WeatherType.cloudyRain:
-        return const [Color(0xFF9EACB4), Color(0xFFDDE3E6)];
-      case WeatherType.night:
-        return const [Color(0xFFFFCC80), Color(0xFFCE93D8)];
-    }
+        return const [Color(0xFF9EACB4), Color(0xFFDDE3E6)];\r\n    }
   }
 
   (Color, Color) _grassColors() {
@@ -539,13 +534,7 @@ class _FieldPainter extends CustomPainter {
         return (
           const Color(0xFF2e7d32).withOpacity(0.82),
           const Color(0xFF336E30).withOpacity(0.82),
-        );
-      case WeatherType.night:
-        return (
-          const Color(0xFF1B5E20).withOpacity(0.9),
-          const Color(0xFF255D2A).withOpacity(0.9),
-        );
-    }
+        );\r\n    }
   }
 
   void _drawRainOverlay(Canvas canvas, Size size) {
@@ -652,49 +641,4 @@ class _FieldPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _FieldPainter oldDelegate) => true;
-}
-
-  void _drawNightLightsWorld(Canvas canvas, Size size) {
-    // Subtle vignette
-    final vignetteShader = RadialGradient(
-      colors: [Colors.transparent, Colors.black.withOpacity(0.55)],
-      stops: const [0.6, 1.0],
-      center: Alignment.topCenter,
-      radius: 1.4,
-    ).createShader(Offset.zero & size);
-    final vignettePaint = Paint()..shader = vignetteShader;
-    canvas.save();
-    canvas.drawRect(Offset.zero & size, vignettePaint);
-
-    // Lamp flares at top corners
-    void flare(Offset c) {
-      final r = size.width * 0.06;
-      final shader = RadialGradient(
-        colors: [const Color(0xFFFFF8E1).withOpacity(0.9), Colors.transparent],
-        stops: const [0.0, 1.0],
-      ).createShader(Rect.fromCircle(center: c, radius: r));
-      final p = Paint()
-        ..shader = shader
-        ..maskFilter = ui.MaskFilter.blur(BlurStyle.normal, 8);
-      canvas.drawCircle(c, r, p);
-    }
-    flare(const Offset(36, 28));
-    flare(Offset(size.width - 36, 28));
-
-    // Light pools on field
-    void pool(Rect r) {
-      final shader = RadialGradient(
-        colors: [const Color(0xFFFFFDE7).withOpacity(0.45), Colors.transparent],
-        stops: const [0.0, 1.0],
-      ).createShader(r);
-      final p = Paint()
-        ..shader = shader
-        ..maskFilter = ui.MaskFilter.blur(BlurStyle.normal, 12);
-      canvas.drawOval(r, p);
-    }
-    final y = size.height * 0.78;
-    pool(Rect.fromCenter(center: Offset(size.width * 0.30, y), width: size.width * 0.6, height: size.height * 0.22));
-    pool(Rect.fromCenter(center: Offset(size.width * 0.70, y), width: size.width * 0.6, height: size.height * 0.22));
-
-    canvas.restore();
-  }
+}\r\n
