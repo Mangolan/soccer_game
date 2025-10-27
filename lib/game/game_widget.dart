@@ -1,10 +1,12 @@
-﻿import 'dart:ui' as ui;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/scheduler.dart';
 import 'dart:math' as math;
 import 'game_logic.dart';
 import '../marble_face.dart';
+
+enum WeatherType { dayClear, dayRain, cloudy, cloudyRain, evening }
 
 class GameWidget extends StatefulWidget {
   final MarbleStyle leftStyle;
@@ -50,15 +52,22 @@ class _GameWidgetState extends State<GameWidget> with SingleTickerProviderStateM
   double _cameraX = 0.0;
   double _time = 0.0;
   bool _advanced = false;
+  late WeatherType _weather;
 
   // Input
   bool _left = false;
   bool _right = false;
   bool _jump = false;
 
+  WeatherType _randomWeather() {
+    const all = WeatherType.values;
+    return all[math.Random().nextInt(all.length)];
+  }
+
   @override
   void initState() {
     super.initState();
+    _weather = _randomWeather();
     _game = GameState(
       size: const Size(360, 640),
       leftPlayer: PlayerState(pos: const Offset(100, 400), color: Colors.blue),
@@ -164,7 +173,7 @@ class _GameWidgetState extends State<GameWidget> with SingleTickerProviderStateM
           child: Stack(
             fit: StackFit.expand,
             children: [
-              CustomPaint(painter: _FieldPainter(_game, cameraX: _cameraX, time: _time)),
+              CustomPaint(painter: _FieldPainter(_game, weather: _weather, cameraX: _cameraX, time: _time)),
               if (_game.celebrating)
                 Positioned.fill(
                   child: IgnorePointer(
@@ -181,7 +190,7 @@ class _GameWidgetState extends State<GameWidget> with SingleTickerProviderStateM
                             boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 12)],
                           ),
                           child: const Text(
-                            'GOAL! 🎉',
+                            'GOAL! ??',
                             style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.black87),
                           ),
                         ),
@@ -313,29 +322,31 @@ class _ScoreBar extends StatelessWidget {
 
 class _FieldPainter extends CustomPainter {
   final GameState g;
+  final WeatherType weather;
   final double cameraX;
   final double time;
-  _FieldPainter(this.g, {required this.cameraX, required this.time});
+  _FieldPainter(this.g, {required this.weather, required this.cameraX, required this.time});
 
   @override
   void paint(Canvas canvas, Size size) {
     canvas.save();
     canvas.translate(-cameraX, 0);
-    // Sky background gradient
+    // Sky background gradient (by weather)
+    final sky = _skyColors();
     final bg = Paint()
-      ..shader = const LinearGradient(
-        colors: [Color(0xFFdfe9f3), Color(0xFFffffff)],
+      ..shader = LinearGradient(
+        colors: sky,
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
       ).createShader(Offset.zero & size);
     canvas.drawRect(Rect.fromLTWH(0, 0, g.worldWidth, size.height), bg);
 
-    // Ground and premium grass stripes
+    // Ground and grass stripes (by weather)
     final groundY = g.groundY;
     final field = Rect.fromLTWH(0, groundY, g.worldWidth, size.height - groundY);
-    final baseGrass = const Color(0xFF2e7d32);
-    final stripeA = baseGrass.withOpacity(0.92);
-    final stripeB = const Color(0xFF388e3c).withOpacity(0.92);
+    final grass = _grassColors();
+    final stripeA = grass.$1;
+    final stripeB = grass.$2;
     const stripeCount = 8;
     final stripeH = field.height / stripeCount;
     for (var i = 0; i < stripeCount; i++) {
@@ -393,6 +404,60 @@ class _FieldPainter extends CustomPainter {
       ..strokeWidth = 2;
     canvas.drawCircle(g.ball.pos, GameConfig.ballRadius * 0.7, seam);
     canvas.restore();
+
+    // Rain overlay in screen space
+    if (weather == WeatherType.dayRain || weather == WeatherType.cloudyRain) {
+      _drawRainOverlay(canvas, size);
+    }
+  }
+
+  List<Color> _skyColors() {
+    switch (weather) {
+      case WeatherType.dayClear:
+        return const [Color(0xFF90CAF9), Color(0xFFE3F2FD)];
+      case WeatherType.dayRain:
+        return const [Color(0xFF9EC5DB), Color(0xFFE6EEF5)];
+      case WeatherType.cloudy:
+        return const [Color(0xFFB0BEC5), Color(0xFFECEFF1)];
+      case WeatherType.cloudyRain:
+        return const [Color(0xFF9EACB4), Color(0xFFDDE3E6)];
+      case WeatherType.evening:
+        return const [Color(0xFFFFCC80), Color(0xFFCE93D8)];
+    }
+  }
+
+  (Color, Color) _grassColors() {
+    switch (weather) {
+      case WeatherType.dayClear:
+      case WeatherType.dayRain:
+        return (const Color(0xFF2e7d32).withOpacity(0.92), const Color(0xFF388e3c).withOpacity(0.92));
+      case WeatherType.cloudy:
+      case WeatherType.cloudyRain:
+        return (const Color(0xFF2e7d32).withOpacity(0.82), const Color(0xFF336E30).withOpacity(0.82));
+      case WeatherType.evening:
+        return (const Color(0xFF1B5E20).withOpacity(0.9), const Color(0xFF255D2A).withOpacity(0.9));
+    }
+  }
+
+  void _drawRainOverlay(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.22)
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+    const spacingX = 18.0;
+    const spacingY = 22.0;
+    const speed = 240.0; // px/s downward
+    const dx = -6.0; // slant
+    const dy = 12.0;
+    final shift = (time * speed) % spacingY;
+    for (double x = 0; x <= size.width + spacingX; x += spacingX) {
+      for (double y = -spacingY; y <= size.height + spacingY; y += spacingY) {
+        final y0 = y + shift;
+        final p1 = Offset(x, y0);
+        final p2 = p1.translate(dx, dy);
+        canvas.drawLine(p1, p2, paint);
+      }
+    }
   }
 
 
