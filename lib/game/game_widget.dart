@@ -62,8 +62,9 @@ class _GameWidgetState extends State<GameWidget>
   bool _jump = false;
 
   WeatherType _randomWeather() {
-    const all = WeatherType.values;
-    return all[math.Random().nextInt(all.length)];
+    // Exclude rainy presets: only dayClear, cloudy, evening
+    const pool = [WeatherType.dayClear, WeatherType.cloudy, WeatherType.evening];
+    return pool[math.Random().nextInt(pool.length)];
   }
 
   @override
