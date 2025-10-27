@@ -11,7 +11,8 @@ enum WeatherType { dayClear, dayRain, cloudy, cloudyRain, evening }
 class GameWidget extends StatefulWidget {
   final MarbleStyle leftStyle;
   final MarbleStyle rightStyle;
-  final MarbleExpression? leftExpression; // not used for dynamic mood, kept for compat
+  final MarbleExpression?
+  leftExpression; // not used for dynamic mood, kept for compat
   final MarbleExpression? rightExpression;
   final MarbleExpression? initialLeftExpression; // sets starting mood
   final MarbleExpression? initialRightExpression; // sets AI starting mood
@@ -46,7 +47,8 @@ class GameWidget extends StatefulWidget {
   State<GameWidget> createState() => _GameWidgetState();
 }
 
-class _GameWidgetState extends State<GameWidget> with SingleTickerProviderStateMixin {
+class _GameWidgetState extends State<GameWidget>
+    with SingleTickerProviderStateMixin {
   late final Ticker _ticker;
   late GameState _game;
   double _cameraX = 0.0;
@@ -83,7 +85,9 @@ class _GameWidgetState extends State<GameWidget> with SingleTickerProviderStateM
       _game.mood.right = widget.initialRightExpression!;
     }
     _ticker = createTicker((elapsed) {
-      var dt = (_lastStamp == null) ? 0.016 : (elapsed - _lastStamp!).inMicroseconds / 1e6;
+      var dt = (_lastStamp == null)
+          ? 0.016
+          : (elapsed - _lastStamp!).inMicroseconds / 1e6;
       // Clamp dt to reduce stutter on occasional long frames
       if (dt > 0.05) dt = 0.05;
       _lastStamp = elapsed;
@@ -104,7 +108,10 @@ class _GameWidgetState extends State<GameWidget> with SingleTickerProviderStateM
       }
       // Camera follows the ball primarily
       final desired = _game.ball.pos.dx - (_game.size.width * 0.5);
-      final maxCam = (_game.worldWidth - _game.size.width).clamp(0, double.infinity);
+      final maxCam = (_game.worldWidth - _game.size.width).clamp(
+        0,
+        double.infinity,
+      );
       final target = desired.clamp(0, maxCam);
       _cameraX = _cameraX + (target - _cameraX) * 0.12; // smooth
       if (mounted) setState(() {});
@@ -156,15 +163,18 @@ class _GameWidgetState extends State<GameWidget> with SingleTickerProviderStateM
           autofocus: true,
           onKeyEvent: (node, evt) {
             final pressed = evt is KeyDownEvent || evt is KeyRepeatEvent;
-            if (evt.logicalKey == LogicalKeyboardKey.arrowLeft || evt.logicalKey == LogicalKeyboardKey.keyA) {
+            if (evt.logicalKey == LogicalKeyboardKey.arrowLeft ||
+                evt.logicalKey == LogicalKeyboardKey.keyA) {
               _left = pressed;
               return KeyEventResult.handled;
             }
-            if (evt.logicalKey == LogicalKeyboardKey.arrowRight || evt.logicalKey == LogicalKeyboardKey.keyD) {
+            if (evt.logicalKey == LogicalKeyboardKey.arrowRight ||
+                evt.logicalKey == LogicalKeyboardKey.keyD) {
               _right = pressed;
               return KeyEventResult.handled;
             }
-            if (evt.logicalKey == LogicalKeyboardKey.space || evt.logicalKey == LogicalKeyboardKey.arrowUp) {
+            if (evt.logicalKey == LogicalKeyboardKey.space ||
+                evt.logicalKey == LogicalKeyboardKey.arrowUp) {
               _jump = pressed;
               return KeyEventResult.handled;
             }
@@ -173,7 +183,14 @@ class _GameWidgetState extends State<GameWidget> with SingleTickerProviderStateM
           child: Stack(
             fit: StackFit.expand,
             children: [
-              CustomPaint(painter: _FieldPainter(_game, weather: _weather, cameraX: _cameraX, time: _time)),
+              CustomPaint(
+                painter: _FieldPainter(
+                  _game,
+                  weather: _weather,
+                  cameraX: _cameraX,
+                  time: _time,
+                ),
+              ),
               if (_game.celebrating)
                 Positioned.fill(
                   child: IgnorePointer(
@@ -183,15 +200,24 @@ class _GameWidgetState extends State<GameWidget> with SingleTickerProviderStateM
                         scale: 1.0 + 0.06 * (1.0 + math.sin(_time * 8)),
                         duration: const Duration(milliseconds: 120),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.9),
                             borderRadius: BorderRadius.circular(12),
-                            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 12)],
+                            boxShadow: [
+                              BoxShadow(color: Colors.black26, blurRadius: 12),
+                            ],
                           ),
                           child: const Text(
                             'GOAL! ??',
-                            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.black87),
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black87,
+                            ),
                           ),
                         ),
                       ),
@@ -221,23 +247,37 @@ class _GameWidgetState extends State<GameWidget> with SingleTickerProviderStateM
                 top: 8,
                 left: 12,
                 right: 12,
-                child: _ScoreBar(scoreLeft: _game.score.left, scoreRight: _game.score.right, onKickoff: start, running: _game.running),
+                child: _ScoreBar(
+                  scoreLeft: _game.score.left,
+                  scoreRight: _game.score.right,
+                  onKickoff: start,
+                  running: _game.running,
+                ),
               ),
               // Mobile controls
               Positioned(
                 left: 12,
                 bottom: 12,
-                child: _holdButton(icon: Icons.arrow_left, onChanged: (v) => setState(() => _left = v)),
+                child: _holdButton(
+                  icon: Icons.arrow_left,
+                  onChanged: (v) => setState(() => _left = v),
+                ),
               ),
               Positioned(
                 left: 72,
                 bottom: 12,
-                child: _holdButton(icon: Icons.arrow_right, onChanged: (v) => setState(() => _right = v)),
+                child: _holdButton(
+                  icon: Icons.arrow_right,
+                  onChanged: (v) => setState(() => _right = v),
+                ),
               ),
               Positioned(
                 right: 12,
                 bottom: 12,
-                child: _holdButton(icon: Icons.arrow_upward, onChanged: (v) => setState(() => _jump = v)),
+                child: _holdButton(
+                  icon: Icons.arrow_upward,
+                  onChanged: (v) => setState(() => _jump = v),
+                ),
               ),
             ],
           ),
@@ -246,7 +286,14 @@ class _GameWidgetState extends State<GameWidget> with SingleTickerProviderStateM
     );
   }
 
-  Widget _faceAt(Offset center, MarbleStyle style, MarbleExpression expr, {EyeStyle? eyeStyle, bool humanize = false, bool flipMouth = false}) {
+  Widget _faceAt(
+    Offset center,
+    MarbleStyle style,
+    MarbleExpression expr, {
+    EyeStyle? eyeStyle,
+    bool humanize = false,
+    bool flipMouth = false,
+  }) {
     const r = GameConfig.playerRadius;
     return Positioned(
       left: center.dx - r - _cameraX,
@@ -265,7 +312,10 @@ class _GameWidgetState extends State<GameWidget> with SingleTickerProviderStateM
     );
   }
 
-  Widget _holdButton({required IconData icon, required ValueChanged<bool> onChanged}) {
+  Widget _holdButton({
+    required IconData icon,
+    required ValueChanged<bool> onChanged,
+  }) {
     return Listener(
       onPointerDown: (_) => onChanged(true),
       onPointerUp: (_) => onChanged(false),
@@ -288,7 +338,12 @@ class _ScoreBar extends StatelessWidget {
   final int scoreRight;
   final VoidCallback onKickoff;
   final bool running;
-  const _ScoreBar({required this.scoreLeft, required this.scoreRight, required this.onKickoff, required this.running});
+  const _ScoreBar({
+    required this.scoreLeft,
+    required this.scoreRight,
+    required this.onKickoff,
+    required this.running,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -315,7 +370,10 @@ class _ScoreBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: c.withOpacity(0.6)),
       ),
-      child: Text(text, style: TextStyle(fontWeight: FontWeight.bold, color: c)),
+      child: Text(
+        text,
+        style: TextStyle(fontWeight: FontWeight.bold, color: c),
+      ),
     );
   }
 }
@@ -325,7 +383,12 @@ class _FieldPainter extends CustomPainter {
   final WeatherType weather;
   final double cameraX;
   final double time;
-  _FieldPainter(this.g, {required this.weather, required this.cameraX, required this.time});
+  _FieldPainter(
+    this.g, {
+    required this.weather,
+    required this.cameraX,
+    required this.time,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -343,14 +406,24 @@ class _FieldPainter extends CustomPainter {
 
     // Ground and grass stripes (by weather)
     final groundY = g.groundY;
-    final field = Rect.fromLTWH(0, groundY, g.worldWidth, size.height - groundY);
+    final field = Rect.fromLTWH(
+      0,
+      groundY,
+      g.worldWidth,
+      size.height - groundY,
+    );
     final grass = _grassColors();
     final stripeA = grass.$1;
     final stripeB = grass.$2;
     const stripeCount = 8;
     final stripeH = field.height / stripeCount;
     for (var i = 0; i < stripeCount; i++) {
-      final r = Rect.fromLTWH(field.left, field.top + i * stripeH, field.width, stripeH);
+      final r = Rect.fromLTWH(
+        field.left,
+        field.top + i * stripeH,
+        field.width,
+        stripeH,
+      );
       canvas.drawRect(r, Paint()..color = (i % 2 == 0) ? stripeA : stripeB);
     }
 
@@ -358,7 +431,11 @@ class _FieldPainter extends CustomPainter {
     final line = Paint()
       ..color = Colors.white.withOpacity(0.6)
       ..strokeWidth = 2;
-    canvas.drawLine(Offset(g.worldWidth / 2, groundY - 140), Offset(g.worldWidth / 2, groundY), line);
+    canvas.drawLine(
+      Offset(g.worldWidth / 2, groundY - 140),
+      Offset(g.worldWidth / 2, groundY),
+      line,
+    );
 
     // Center circle and spot
     final center = Offset(g.worldWidth / 2, groundY - 70);
@@ -367,7 +444,11 @@ class _FieldPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5;
     canvas.drawCircle(center, 52, circlePaint);
-    canvas.drawCircle(center, 2.5, Paint()..color = Colors.white.withOpacity(0.8));
+    canvas.drawCircle(
+      center,
+      2.5,
+      Paint()..color = Colors.white.withOpacity(0.8),
+    );
 
     // Penalty boxes and goal areas at both ends
     final goalDepth = size.width * GameConfig.goalDepthFrac;
@@ -381,19 +462,37 @@ class _FieldPainter extends CustomPainter {
       ..strokeWidth = 2;
     // Left penalty
     canvas.drawRect(Rect.fromLTWH(0, groundY - penH, penW, penH), boxPaint);
-    canvas.drawRect(Rect.fromLTWH(0, groundY - smallH, smallW, smallH), boxPaint);
+    canvas.drawRect(
+      Rect.fromLTWH(0, groundY - smallH, smallW, smallH),
+      boxPaint,
+    );
     // Right penalty at world end
-    canvas.drawRect(Rect.fromLTWH(g.worldWidth - penW, groundY - penH, penW, penH), boxPaint);
-    canvas.drawRect(Rect.fromLTWH(g.worldWidth - smallW, groundY - smallH, smallW, smallH), boxPaint);
+    canvas.drawRect(
+      Rect.fromLTWH(g.worldWidth - penW, groundY - penH, penW, penH),
+      boxPaint,
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(g.worldWidth - smallW, groundY - smallH, smallW, smallH),
+      boxPaint,
+    );
 
     // Goals (beautiful posts + vivid nets with wobble)
     _drawGoal(canvas, g.leftGoal, wobbleTime: g.netWobbleLeftTime, flip: false);
-    _drawGoal(canvas, g.rightGoal, wobbleTime: g.netWobbleRightTime, flip: true);
+    _drawGoal(
+      canvas,
+      g.rightGoal,
+      wobbleTime: g.netWobbleRightTime,
+      flip: true,
+    );
 
     // Ball (no gloss)
     final ballShadow = Paint()..color = Colors.black.withOpacity(0.2);
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(g.ball.pos.dx, g.groundY + 6), width: 24, height: 8),
+      Rect.fromCenter(
+        center: Offset(g.ball.pos.dx, g.groundY + 6),
+        width: 24,
+        height: 8,
+      ),
       ballShadow,
     );
     final ball = Paint()..color = const Color(0xFFFAFAFA);
@@ -430,12 +529,21 @@ class _FieldPainter extends CustomPainter {
     switch (weather) {
       case WeatherType.dayClear:
       case WeatherType.dayRain:
-        return (const Color(0xFF2e7d32).withOpacity(0.92), const Color(0xFF388e3c).withOpacity(0.92));
+        return (
+          const Color(0xFF2e7d32).withOpacity(0.92),
+          const Color(0xFF388e3c).withOpacity(0.92),
+        );
       case WeatherType.cloudy:
       case WeatherType.cloudyRain:
-        return (const Color(0xFF2e7d32).withOpacity(0.82), const Color(0xFF336E30).withOpacity(0.82));
+        return (
+          const Color(0xFF2e7d32).withOpacity(0.82),
+          const Color(0xFF336E30).withOpacity(0.82),
+        );
       case WeatherType.evening:
-        return (const Color(0xFF1B5E20).withOpacity(0.9), const Color(0xFF255D2A).withOpacity(0.9));
+        return (
+          const Color(0xFF1B5E20).withOpacity(0.9),
+          const Color(0xFF255D2A).withOpacity(0.9),
+        );
     }
   }
 
@@ -460,34 +568,60 @@ class _FieldPainter extends CustomPainter {
     }
   }
 
-
-  void _drawNet(Canvas canvas, Rect goal, {bool flip = false, double wobbleTime = 0.0}) {
+  void _drawNet(
+    Canvas canvas,
+    Rect goal, {
+    bool flip = false,
+    double wobbleTime = 0.0,
+  }) {
     // Vivid deep sky-blue net with slight sag using quadratic curves
     final spacing = 10.0;
     final netTopColor = const Color(0xFF29B6F6).withOpacity(0.95);
     final netBottomColor = const Color(0xFF1976D2).withOpacity(0.95);
     // Vertical strings with sag and wobble
     for (double x = goal.left; x <= goal.right; x += spacing) {
-      final wobbleAmp = (wobbleTime > 0) ? (6.0 * (wobbleTime.clamp(0, 1.0))) : 0.0;
+      final wobbleAmp = (wobbleTime > 0)
+          ? (6.0 * (wobbleTime.clamp(0, 1.0)))
+          : 0.0;
       final phase = (x - goal.left) * 0.2;
       final wobble = wobbleAmp * math.sin(time * 12.0 + phase);
-      final control = Offset(x + (flip ? -spacing : spacing) * 0.6, goal.top + goal.height * 0.55 + wobble);
+      final control = Offset(
+        x + (flip ? -spacing : spacing) * 0.6,
+        goal.top + goal.height * 0.55 + wobble,
+      );
       final path = Path()
         ..moveTo(x, goal.top)
         ..quadraticBezierTo(control.dx, control.dy, x, goal.bottom);
       final t = (x - goal.left) / goal.width;
       final color = Color.lerp(netTopColor, netBottomColor, t) ?? netTopColor;
-      canvas.drawPath(path, Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = 1.4);
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.4,
+      );
     }
     // Horizontal threads
     for (double y = goal.top + spacing; y < goal.bottom; y += spacing) {
       final p1 = Offset(goal.left, y);
       final p2 = Offset(goal.right, y);
-      canvas.drawLine(p1, p2, Paint()..color = netBottomColor..strokeWidth = 1.2);
+      canvas.drawLine(
+        p1,
+        p2,
+        Paint()
+          ..color = netBottomColor
+          ..strokeWidth = 1.2,
+      );
     }
   }
 
-  void _drawGoal(Canvas canvas, Rect goal, {double wobbleTime = 0.0, bool flip = false}) {
+  void _drawGoal(
+    Canvas canvas,
+    Rect goal, {
+    double wobbleTime = 0.0,
+    bool flip = false,
+  }) {
     // Posts and crossbar with glossy white and cyan outline
     final postW = 6.0;
     final outer = RRect.fromRectAndRadius(goal, const Radius.circular(3));
