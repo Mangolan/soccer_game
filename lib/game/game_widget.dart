@@ -656,16 +656,15 @@ class _FieldPainter extends CustomPainter {
 
   void _drawNightLightsWorld(Canvas canvas, Size size) {
     // Subtle vignette
-    final vignette = Paint()
-      ..shader = RadialGradient(
-        colors: [Colors.transparent, Colors.black.withOpacity(0.55)],
-        stops: const [0.6, 1.0],
-        center: Alignment.topCenter,
-        radius: 1.4,
-      ).createShader(Offset.zero & size);
+    final vignetteShader = RadialGradient(
+      colors: [Colors.transparent, Colors.black.withOpacity(0.55)],
+      stops: const [0.6, 1.0],
+      center: Alignment.topCenter,
+      radius: 1.4,
+    ).createShader(Offset.zero & size);
+    final vignettePaint = Paint()..shader = vignetteShader;
     canvas.save();
-    canvas.resetTransform(); // draw in screen space
-    canvas.drawRect(Offset.zero & size, Paint()..shader = vignette);
+    canvas.drawRect(Offset.zero & size, vignettePaint);
 
     // Lamp flares at top corners
     void flare(Offset c) {
