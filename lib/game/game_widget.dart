@@ -484,7 +484,7 @@ class _FieldPainter extends CustomPainter {
       g.rightGoal,
       wobbleTime: g.netWobbleRightTime,
       flip: true,
-    );    // Ball (no gloss)
+    ); // Ball (no gloss)
     final ballShadow = Paint()..color = Colors.black.withOpacity(0.2);
     canvas.drawOval(
       Rect.fromCenter(
@@ -518,7 +518,8 @@ class _FieldPainter extends CustomPainter {
       case WeatherType.cloudy:
         return const [Color(0xFFB0BEC5), Color(0xFFECEFF1)];
       case WeatherType.cloudyRain:
-        return const [Color(0xFF9EACB4), Color(0xFFDDE3E6)];\r\n    }
+        return const [Color(0xFF9EACB4), Color(0xFFDDE3E6)];
+    }
   }
 
   (Color, Color) _grassColors() {
@@ -534,7 +535,8 @@ class _FieldPainter extends CustomPainter {
         return (
           const Color(0xFF2e7d32).withOpacity(0.82),
           const Color(0xFF336E30).withOpacity(0.82),
-        );\r\n    }
+        );
+    }
   }
 
   void _drawRainOverlay(Canvas canvas, Size size) {
@@ -641,4 +643,4 @@ class _FieldPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _FieldPainter oldDelegate) => true;
-}\r\n
+}
