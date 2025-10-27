@@ -184,12 +184,14 @@ class _GameWidgetState extends State<GameWidget>
           child: Stack(
             fit: StackFit.expand,
             children: [
-              CustomPaint(
-                painter: _FieldPainter(
-                  _game,
-                  weather: _weather,
-                  cameraX: _cameraX,
-                  time: _time,
+              RepaintBoundary(
+                child: CustomPaint(
+                  painter: _FieldPainter(
+                    _game,
+                    weather: _weather,
+                    cameraX: _cameraX,
+                    time: _time,
+                  ),
                 ),
               ),
               if (_game.celebrating)
@@ -391,91 +393,22 @@ class _FieldPainter extends CustomPainter {
     required this.time,
   });
 
+  // Cache for static field background to reduce per-frame draw cost.
+  static final _FieldBackgroundCache _bgCache = _FieldBackgroundCache();
+
   @override
   void paint(Canvas canvas, Size size) {
     canvas.save();
     canvas.translate(-cameraX, 0);
-    // Sky background gradient (by weather)
-    final sky = _skyColors();
-    final bg = Paint()
-      ..shader = LinearGradient(
-        colors: sky,
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      ).createShader(Offset.zero & size);
-    canvas.drawRect(Rect.fromLTWH(0, 0, g.worldWidth, size.height), bg);
 
-    // Ground and grass stripes (by weather)
-    final groundY = g.groundY;
-    final field = Rect.fromLTWH(
-      0,
-      groundY,
-      g.worldWidth,
-      size.height - groundY,
+    // Draw cached static background (sky, field, lines, boxes, circle).
+    final pic = _bgCache.ensure(
+      worldWidth: g.worldWidth,
+      size: size,
+      weather: weather,
+      groundY: g.groundY,
     );
-    final grass = _grassColors();
-    final stripeA = grass.$1;
-    final stripeB = grass.$2;
-    const stripeCount = 8;
-    final stripeH = field.height / stripeCount;
-    for (var i = 0; i < stripeCount; i++) {
-      final r = Rect.fromLTWH(
-        field.left,
-        field.top + i * stripeH,
-        field.width,
-        stripeH,
-      );
-      canvas.drawRect(r, Paint()..color = (i % 2 == 0) ? stripeA : stripeB);
-    }
-
-    // Mid line
-    final line = Paint()
-      ..color = Colors.white.withOpacity(0.6)
-      ..strokeWidth = 2;
-    canvas.drawLine(
-      Offset(g.worldWidth / 2, groundY - 140),
-      Offset(g.worldWidth / 2, groundY),
-      line,
-    );
-
-    // Center circle and spot
-    final center = Offset(g.worldWidth / 2, groundY - 70);
-    final circlePaint = Paint()
-      ..color = Colors.white.withOpacity(0.7)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5;
-    canvas.drawCircle(center, 52, circlePaint);
-    canvas.drawCircle(
-      center,
-      2.5,
-      Paint()..color = Colors.white.withOpacity(0.8),
-    );
-
-    // Penalty boxes and goal areas at both ends
-    final goalDepth = size.width * GameConfig.goalDepthFrac;
-    final penW = goalDepth * 2.2;
-    final penH = (size.height - groundY) * 0.9;
-    final smallW = goalDepth * 1.2;
-    final smallH = (size.height - groundY) * 0.55;
-    final boxPaint = Paint()
-      ..color = Colors.white.withOpacity(0.8)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    // Left penalty
-    canvas.drawRect(Rect.fromLTWH(0, groundY - penH, penW, penH), boxPaint);
-    canvas.drawRect(
-      Rect.fromLTWH(0, groundY - smallH, smallW, smallH),
-      boxPaint,
-    );
-    // Right penalty at world end
-    canvas.drawRect(
-      Rect.fromLTWH(g.worldWidth - penW, groundY - penH, penW, penH),
-      boxPaint,
-    );
-    canvas.drawRect(
-      Rect.fromLTWH(g.worldWidth - smallW, groundY - smallH, smallW, smallH),
-      boxPaint,
-    );
+    canvas.drawPicture(pic);
 
     // Goals (beautiful posts + vivid nets with wobble)
     _drawGoal(canvas, g.leftGoal, wobbleTime: g.netWobbleLeftTime, flip: false);
@@ -541,11 +474,12 @@ class _FieldPainter extends CustomPainter {
 
   void _drawRainOverlay(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.22)
-      ..strokeWidth = 1.2
+      ..color = Colors.white.withOpacity(0.18)
+      ..strokeWidth = 1.0
       ..strokeCap = StrokeCap.round;
-    const spacingX = 18.0;
-    const spacingY = 22.0;
+    // Slightly lower density to reduce per-frame draw calls
+    const spacingX = 22.0;
+    const spacingY = 26.0;
     const speed = 240.0; // px/s downward
     const dx = -6.0; // slant
     const dy = 12.0;
@@ -643,4 +577,135 @@ class _FieldPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _FieldPainter oldDelegate) => true;
+}
+
+// Helper to build and cache the static field background as a Picture.
+class _FieldBackgroundCache {
+  ui.Picture? _picture;
+  double? _cachedWorldWidth;
+  Size? _cachedSize;
+  WeatherType? _cachedWeather;
+  double? _cachedGroundY;
+
+  ui.Picture ensure({
+    required double worldWidth,
+    required Size size,
+    required WeatherType weather,
+    required double groundY,
+  }) {
+    if (_picture != null &&
+        _cachedWorldWidth == worldWidth &&
+        _cachedSize == size &&
+        _cachedWeather == weather &&
+        _cachedGroundY == groundY) {
+      return _picture!;
+    }
+    final rec = ui.PictureRecorder();
+    final c = Canvas(rec);
+
+    // Sky background gradient (by weather)
+    final sky = _skyColors(weather);
+    final bg = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Colors.transparent, Colors.transparent],
+      ).createShader(Offset.zero & size);
+    // Rebuild with actual colors to avoid reallocation in loops
+    final shader = LinearGradient(
+      colors: sky,
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    ).createShader(Offset.zero & size);
+    bg.shader = shader;
+    c.drawRect(Rect.fromLTWH(0, 0, worldWidth, size.height), bg);
+
+    // Ground and grass stripes (by weather)
+    final field = Rect.fromLTWH(
+      0,
+      groundY,
+      worldWidth,
+      size.height - groundY,
+    );
+    final grass = _grassColors(weather);
+    final stripeA = grass.$1;
+    final stripeB = grass.$2;
+    const stripeCount = 8;
+    final stripeH = field.height / stripeCount;
+    for (var i = 0; i < stripeCount; i++) {
+      final r = Rect.fromLTWH(
+        field.left,
+        field.top + i * stripeH,
+        field.width,
+        stripeH,
+      );
+      c.drawRect(r, Paint()..color = (i % 2 == 0) ? stripeA : stripeB);
+    }
+
+    // Center line and circle removed per request
+
+    // Penalty boxes and goal areas at both ends
+    final goalDepth = size.width * GameConfig.goalDepthFrac;
+    final penW = goalDepth * 2.2;
+    final penH = (size.height - groundY) * 0.9;
+    final smallW = goalDepth * 1.2;
+    final smallH = (size.height - groundY) * 0.55;
+    final boxPaint = Paint()
+      ..color = Colors.white.withOpacity(0.8)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    // Left penalty
+    c.drawRect(Rect.fromLTWH(0, groundY - penH, penW, penH), boxPaint);
+    c.drawRect(
+      Rect.fromLTWH(0, groundY - smallH, smallW, smallH),
+      boxPaint,
+    );
+    // Right penalty at world end
+    c.drawRect(
+      Rect.fromLTWH(worldWidth - penW, groundY - penH, penW, penH),
+      boxPaint,
+    );
+    c.drawRect(
+      Rect.fromLTWH(worldWidth - smallW, groundY - smallH, smallW, smallH),
+      boxPaint,
+    );
+
+    final picture = rec.endRecording();
+    _picture = picture;
+    _cachedWorldWidth = worldWidth;
+    _cachedSize = size;
+    _cachedWeather = weather;
+    _cachedGroundY = groundY;
+    return picture;
+  }
+
+  static List<Color> _skyColors(WeatherType weather) {
+    switch (weather) {
+      case WeatherType.dayClear:
+        return const [Color(0xFF90CAF9), Color(0xFFE3F2FD)];
+      case WeatherType.dayRain:
+        return const [Color(0xFF9EC5DB), Color(0xFFE6EEF5)];
+      case WeatherType.cloudy:
+        return const [Color(0xFFB0BEC5), Color(0xFFECEFF1)];
+      case WeatherType.cloudyRain:
+        return const [Color(0xFF9EACB4), Color(0xFFDDE3E6)];
+    }
+  }
+
+  static (Color, Color) _grassColors(WeatherType weather) {
+    switch (weather) {
+      case WeatherType.dayClear:
+      case WeatherType.dayRain:
+        return (
+          const Color(0xFF2e7d32).withOpacity(0.92),
+          const Color(0xFF388e3c).withOpacity(0.92),
+        );
+      case WeatherType.cloudy:
+      case WeatherType.cloudyRain:
+        return (
+          const Color(0xFF2e7d32).withOpacity(0.82),
+          const Color(0xFF336E30).withOpacity(0.82),
+        );
+    }
+  }
 }
