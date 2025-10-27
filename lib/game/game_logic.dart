@@ -1,0 +1,443 @@
+
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+import '../marble_face.dart';
+
+enum AIDifficulty { veryEasy, easy, medium, hard, veryHard }
+
+class GameConfig {
+  static const double gravity = 1800; // px/s^2
+  static const double groundFrac = 0.85; // ground y = h * frac
+  static const double playerRadius = 28;
+  static const double ballRadius = 16;
+  static const double playerSpeed = 350;
+  static const double jumpVelocity = -780;
+  static const double wallBounce = 0.7;
+  static const double ballBounce = 0.75;
+  static const double airDrag = 0.01;
+  static const double headImpulse = 520; // base impulse when heading
+  static const double friction = 0.92; // ground horizontal damping
+  static const double goalDepthFrac = 0.06; // as width fraction
+  static const double goalHeightFrac = 0.36; // as height fraction from ground up
+
+  final double aiPlayerSpeed;
+  final double aiJumpVelocity;
+  final double aiJumpCooldown;
+  final double aiKp; // Proportional gain for smoother movement
+
+  GameConfig({
+    required AIDifficulty difficulty,
+  })  : aiPlayerSpeed = _getAiPlayerSpeed(difficulty),
+        aiJumpVelocity = _getAiJumpVelocity(difficulty),
+        aiJumpCooldown = _getAiJumpCooldown(difficulty),
+        aiKp = _getAiKp(difficulty);
+
+  static double _getAiPlayerSpeed(AIDifficulty difficulty) {
+    switch (difficulty) {
+      case AIDifficulty.veryEasy:
+        return GameConfig.playerSpeed * 0.45;
+      case AIDifficulty.easy:
+        return GameConfig.playerSpeed * 0.6;
+      case AIDifficulty.medium:
+        return GameConfig.playerSpeed * 0.8;
+      case AIDifficulty.hard:
+        return GameConfig.playerSpeed * 1.0;
+      case AIDifficulty.veryHard:
+        return GameConfig.playerSpeed * 1.12;
+    }
+  }
+
+  static double _getAiJumpVelocity(AIDifficulty difficulty) {
+    switch (difficulty) {
+      case AIDifficulty.veryEasy:
+        return GameConfig.jumpVelocity * 0.75;
+      case AIDifficulty.easy:
+        return GameConfig.jumpVelocity * 0.85;
+      case AIDifficulty.medium:
+        return GameConfig.jumpVelocity * 0.95;
+      case AIDifficulty.hard:
+        return GameConfig.jumpVelocity * 1.0;
+      case AIDifficulty.veryHard:
+        return GameConfig.jumpVelocity * 1.05;
+    }
+  }
+
+  static double _getAiJumpCooldown(AIDifficulty difficulty) {
+    switch (difficulty) {
+      case AIDifficulty.veryEasy:
+        return 1.4;
+      case AIDifficulty.easy:
+        return 1.0;
+      case AIDifficulty.medium:
+        return 0.7;
+      case AIDifficulty.hard:
+        return 0.4;
+      case AIDifficulty.veryHard:
+        return 0.25;
+    }
+  }
+
+  static double _getAiKp(AIDifficulty difficulty) {
+    switch (difficulty) {
+      case AIDifficulty.veryEasy:
+        return 1.2;
+      case AIDifficulty.easy:
+        return 1.5;
+      case AIDifficulty.medium:
+        return 2.0;
+      case AIDifficulty.hard:
+        return 2.5;
+      case AIDifficulty.veryHard:
+        return 3.0;
+    }
+  }
+}
+
+class PlayerState {
+  Offset pos; // center
+  Offset vel;
+  bool grounded;
+  final Color color;
+  final MarbleExpression expression;
+  PlayerState({
+    required this.pos,
+    this.vel = Offset.zero,
+    this.grounded = true,
+    required this.color,
+    this.expression = MarbleExpression.neutral,
+  });
+}
+
+class FaceMood {
+  MarbleExpression left = MarbleExpression.mischievous;
+  MarbleExpression right = MarbleExpression.mischievous;
+  double leftTimer = 0;
+  double rightTimer = 0;
+
+  void setLeft(MarbleExpression e, double t) {
+    left = e;
+    leftTimer = t;
+  }
+
+  void setRight(MarbleExpression e, double t) {
+    right = e;
+    rightTimer = t;
+  }
+
+  void tick(double dt) {
+    if (leftTimer > 0) {
+      leftTimer -= dt;
+      if (leftTimer <= 0) left = MarbleExpression.neutral;
+    }
+    if (rightTimer > 0) {
+      rightTimer -= dt;
+      if (rightTimer <= 0) right = MarbleExpression.neutral;
+    }
+  }
+}
+
+class BallState {
+  Offset pos;
+  Offset vel;
+  BallState({required this.pos, this.vel = Offset.zero});
+}
+
+class GameScore {
+  int left = 0;
+  int right = 0;
+}
+
+class GameState {
+  Size size = Size.zero;
+  late double groundY;
+  late Rect leftGoal;
+  late Rect rightGoal;
+  late double worldWidth;
+  // Crossbar removed in this version (simple goal)
+
+  final PlayerState leftPlayer;
+  final PlayerState rightPlayer;
+  final BallState ball;
+  final GameScore score = GameScore();
+  final FaceMood mood = FaceMood();
+  final GameConfig config;
+
+  bool running = false;
+  bool celebrating = false;
+  bool lastScorerLeft = false;
+  double celebrationTime = 0.0;
+  double _aiJumpCooldown = 0.0;
+  double netWobbleLeftTime = 0.0;
+  double netWobbleRightTime = 0.0;
+  // No goal freeze / last scorer in simple goal mode
+
+  GameState({
+    required this.size,
+    required this.leftPlayer,
+    required this.rightPlayer,
+    required this.ball,
+    required AIDifficulty aiDifficulty,
+  }) : config = GameConfig(difficulty: aiDifficulty) {
+    _configure(size);
+  }
+
+  void resize(Size newSize) {
+    size = newSize;
+    _configure(newSize);
+  }
+
+  void _configure(Size s) {
+    groundY = s.height * GameConfig.groundFrac;
+    worldWidth = s.width * 2.6; // extend world so user can pan to see goals
+    final goalDepth = s.width * GameConfig.goalDepthFrac;
+    final goalHeight = s.height * GameConfig.goalHeightFrac;
+    leftGoal = Rect.fromLTWH(0, groundY - goalHeight, goalDepth, goalHeight);
+    rightGoal = Rect.fromLTWH(worldWidth - goalDepth, groundY - goalHeight, goalDepth, goalHeight);
+    // Crossbars not used in simple mode
+  }
+
+  void kickoff() {
+    running = true;
+    // Reset positions
+    leftPlayer.pos = Offset(size.width * 0.2, groundY - GameConfig.playerRadius);
+    leftPlayer.vel = Offset.zero;
+    leftPlayer.grounded = true;
+    rightPlayer.pos = Offset(size.width * 0.8, groundY - GameConfig.playerRadius);
+    rightPlayer.vel = Offset.zero;
+    rightPlayer.grounded = true;
+    ball.pos = Offset(size.width * 0.5, groundY - GameConfig.playerRadius - GameConfig.ballRadius - 8);
+    ball.vel = const Offset(0, -120);
+  }
+
+  void update(double dt, {bool leftLeft=false, bool leftRight=false, bool leftJump=false}) {
+    if (!running) return;
+    mood.tick(dt);
+    if (_aiJumpCooldown > 0) _aiJumpCooldown -= dt;
+    // Net wobble decay timers
+    if (netWobbleLeftTime > 0) netWobbleLeftTime = (netWobbleLeftTime - dt).clamp(0, 10);
+    if (netWobbleRightTime > 0) netWobbleRightTime = (netWobbleRightTime - dt).clamp(0, 10);
+
+    // Celebration state: pause gameplay briefly with small hop
+    if (celebrating) {
+      celebrationTime -= dt;
+      // Gentle hop effect for scorer
+      final hop = (math.sin((1.0 - celebrationTime) * 18.0) * 60).clamp(0, 60).toDouble();
+      if (lastScorerLeft) {
+        leftPlayer.pos = Offset(leftPlayer.pos.dx, (groundY - GameConfig.playerRadius) - hop);
+      } else {
+        rightPlayer.pos = Offset(rightPlayer.pos.dx, (groundY - GameConfig.playerRadius) - hop);
+      }
+      if (celebrationTime <= 0) {
+        celebrating = false;
+        // Kickoff to the side that conceded
+        _centerKick(toRight: lastScorerLeft);
+      }
+      return; // skip normal update while celebrating
+    }
+
+    // Left player input (instant response)
+    double axL = 0;
+    if (leftLeft) axL -= GameConfig.playerSpeed;
+    if (leftRight) axL += GameConfig.playerSpeed;
+    leftPlayer.vel = Offset(axL, leftPlayer.vel.dy);
+    if (leftJump && leftPlayer.grounded) {
+      leftPlayer.vel = Offset(leftPlayer.vel.dx, GameConfig.jumpVelocity);
+      leftPlayer.grounded = false;
+    }
+
+    // Simple AI for right player
+    final targetX = ball.pos.dx.clamp(worldWidth * 0.55, worldWidth * 0.95);
+    final dx = targetX - rightPlayer.pos.dx;
+    final deadZone = 6.0;
+    final kP = config.aiKp;
+    double desiredVx = 0.0;
+    if (dx.abs() > deadZone) {
+      desiredVx = (dx * kP).clamp(-config.aiPlayerSpeed, config.aiPlayerSpeed);
+    }
+    // Smooth towards desired velocity to reduce jitter
+    final alpha = 0.15;
+    final newVx = rightPlayer.vel.dx + (desiredVx - rightPlayer.vel.dx) * alpha;
+    rightPlayer.vel = Offset(newVx, rightPlayer.vel.dy);
+    final verticalOk = (ball.pos.dy < groundY - 80) && (ball.pos.dx > size.width * 0.6);
+    if (verticalOk && rightPlayer.grounded && (dx.abs() < 40) && _aiJumpCooldown <= 0) {
+      rightPlayer.vel = Offset(rightPlayer.vel.dx, config.aiJumpVelocity);
+      rightPlayer.grounded = false;
+      _aiJumpCooldown = config.aiJumpCooldown;
+    }
+
+    // Integrate players
+    _integratePlayer(leftPlayer, dt);
+    _integratePlayer(rightPlayer, dt);
+
+    // Player vs Player body collision (simple elastic response)
+    _handlePlayersCollision();
+
+    // Ball physics
+    _integrateBall(dt);
+    // No crossbar collisions in simple mode
+
+    // Collisions ball <-> players (heading)
+    _handleBallPlayer(leftPlayer);
+    _handleBallPlayer(rightPlayer, isLeft: false);
+
+    // Goals / scoring
+    _checkGoals();
+  }
+
+  void _integratePlayer(PlayerState p, double dt) {
+    // Gravity
+    p.vel = Offset(p.vel.dx, p.vel.dy + GameConfig.gravity * dt);
+    // Integrate
+    p.pos += p.vel * dt;
+
+    // Ground
+    final yBottom = groundY - GameConfig.playerRadius;
+    if (p.pos.dy >= yBottom) {
+      p.pos = Offset(p.pos.dx, yBottom);
+      p.vel = Offset(p.vel.dx * GameConfig.friction, 0);
+      p.grounded = true;
+    } else {
+      p.grounded = false;
+    }
+
+    // Walls
+    if (p.pos.dx < GameConfig.playerRadius) {
+      p.pos = Offset(GameConfig.playerRadius, p.pos.dy);
+    }
+    if (p.pos.dx > worldWidth - GameConfig.playerRadius) {
+      p.pos = Offset(worldWidth - GameConfig.playerRadius, p.pos.dy);
+    }
+  }
+
+  void _integrateBall(double dt) {
+    // Air drag
+    final drag = 1 - GameConfig.airDrag;
+    ball.vel = Offset(ball.vel.dx * drag, (ball.vel.dy + GameConfig.gravity * dt) * drag);
+    ball.pos += ball.vel * dt;
+
+    // Floor
+    final yFloor = groundY - GameConfig.ballRadius;
+    if (ball.pos.dy >= yFloor) {
+      ball.pos = Offset(ball.pos.dx, yFloor);
+      ball.vel = Offset(ball.vel.dx * 0.98, -ball.vel.dy.abs() * GameConfig.ballBounce);
+      // friction at ground
+      ball.vel = Offset(ball.vel.dx * 0.96, ball.vel.dy);
+    }
+    // Ceiling
+    if (ball.pos.dy < GameConfig.ballRadius) {
+      ball.pos = Offset(ball.pos.dx, GameConfig.ballRadius);
+      ball.vel = Offset(ball.vel.dx, ball.vel.dy.abs());
+    }
+    // Walls
+    if (ball.pos.dx < GameConfig.ballRadius) {
+      ball.pos = Offset(GameConfig.ballRadius, ball.pos.dy);
+      ball.vel = Offset(ball.vel.dx.abs() * GameConfig.wallBounce, ball.vel.dy);
+    }
+    if (ball.pos.dx > worldWidth - GameConfig.ballRadius) {
+      ball.pos = Offset(worldWidth - GameConfig.ballRadius, ball.pos.dy);
+      ball.vel = Offset(-ball.vel.dx.abs() * GameConfig.wallBounce, ball.vel.dy);
+    }
+  }
+
+  void _handlePlayersCollision() {
+    final r = GameConfig.playerRadius;
+    final minDist = r * 2;
+    Offset d = rightPlayer.pos - leftPlayer.pos;
+    double dist2 = d.dx * d.dx + d.dy * d.dy;
+    if (dist2 >= minDist * minDist) return;
+    double dist = math.sqrt(dist2.clamp(1e-6, double.infinity));
+    // Normal from left -> right
+    final n = Offset(d.dx / dist, d.dy / dist);
+    final overlap = (minDist - dist);
+    // Separate equally
+    leftPlayer.pos -= n * (overlap * 0.5);
+    rightPlayer.pos += n * (overlap * 0.5);
+
+    // Velocity response (equal mass, slight restitution)
+    final rel = rightPlayer.vel - leftPlayer.vel;
+    final vRel = rel.dx * n.dx + rel.dy * n.dy;
+    if (vRel < 0) {
+      const e = 0.25; // restitution (bounciness)
+      final j = -(1 + e) * vRel / 2.0; // equal mass split
+      leftPlayer.vel -= n * j;
+      rightPlayer.vel += n * j;
+      // small tangential damping to reduce sliding
+      final t = Offset(-n.dy, n.dx);
+      final vT = (rel.dx * t.dx + rel.dy * t.dy) * 0.15;
+      leftPlayer.vel += t * vT;
+      rightPlayer.vel -= t * vT;
+    }
+
+    // Keep within bounds and above ground
+    final yBottom = groundY - r;
+    leftPlayer.pos = Offset(
+      leftPlayer.pos.dx.clamp(r, worldWidth - r),
+      math.min(leftPlayer.pos.dy, yBottom),
+    );
+    rightPlayer.pos = Offset(
+      rightPlayer.pos.dx.clamp(r, worldWidth - r),
+      math.min(rightPlayer.pos.dy, yBottom),
+    );
+  }
+
+  void _handleBallPlayer(PlayerState p, {bool isLeft = true}) {
+    final rSum = GameConfig.playerRadius + GameConfig.ballRadius;
+    final delta = ball.pos - p.pos;
+    final dist2 = delta.dx * delta.dx + delta.dy * delta.dy;
+    if (dist2 < rSum * rSum) {
+      final dist = math.sqrt(dist2.clamp(1e-6, double.infinity));
+      final n = Offset(delta.dx / dist, delta.dy / dist);
+      // Separate
+      final overlap = rSum - dist;
+      ball.pos += n * overlap;
+      // Reflect ball velocity along normal and add heading impulse upward
+      final rel = ball.vel - p.vel;
+      final proj = rel.dx * n.dx + rel.dy * n.dy;
+      var v = rel - n * (1.6 * proj);
+      // Add upward bias to simulate heading
+      v += Offset(n.dx * 80, -GameConfig.headImpulse);
+      ball.vel = v;
+      // Set temporary expressions
+      if (isLeft) {
+        mood.setLeft(MarbleExpression.mischievous, 0.6);
+      } else {
+        mood.setRight(MarbleExpression.mischievous, 0.6);
+      }
+    }
+  }
+
+  void _checkGoals() {
+    // Simple contains-based goal detection
+    if (leftGoal.contains(ball.pos)) {
+      score.right += 1;
+      mood.setRight(MarbleExpression.happy, 1.2);
+      mood.setLeft(MarbleExpression.angry, 1.0);
+      netWobbleLeftTime = 0.8;
+      celebrating = true;
+      lastScorerLeft = false;
+      celebrationTime = 1.0;
+    }
+    if (rightGoal.contains(ball.pos)) {
+      score.left += 1;
+      mood.setLeft(MarbleExpression.happy, 1.2);
+      mood.setRight(MarbleExpression.angry, 1.0);
+      netWobbleRightTime = 0.8;
+      celebrating = true;
+      lastScorerLeft = true;
+      celebrationTime = 1.0;
+    }
+  }
+
+  void _centerKick({required bool toRight}) {
+    ball.pos = Offset(worldWidth * 0.5, groundY - GameConfig.playerRadius - GameConfig.ballRadius - 8);
+    ball.vel = Offset((toRight ? 120 : -120), -140);
+    leftPlayer.pos = Offset(worldWidth * 0.2, groundY - GameConfig.playerRadius);
+    rightPlayer.pos = Offset(worldWidth * 0.8, groundY - GameConfig.playerRadius);
+    leftPlayer.vel = Offset.zero;
+    rightPlayer.vel = Offset.zero;
+    leftPlayer.grounded = true;
+    rightPlayer.grounded = true;
+  }
+
+  // Crossbar collision helpers removed in simple mode
+}

@@ -1,0 +1,308 @@
+import 'dart:ui' as ui;
+import 'package:flutter/material.dart';
+import 'game/game_logic.dart';
+import 'game_screen.dart';
+import 'marble_face.dart';
+
+class DifficultySelectionScreen extends StatelessWidget {
+  final MarbleStyle selectedMarble;
+
+  const DifficultySelectionScreen({super.key, required this.selectedMarble});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('AI ?œì´??? íƒ'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0,
+      ),
+      backgroundColor: Colors.white,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Card(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            elevation: 8,
+            color: Colors.white,
+            shadowColor: Colors.black12,
+            margin: const EdgeInsets.all(20),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF42A5F5), Color(0xFF1976D2)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 10, offset: const Offset(0, 6)),
+                      ],
+                    ),
+                    child: const Icon(Icons.sports_soccer_rounded, color: Colors.white, size: 36),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'ì»´í“¨??AI) ?œì´?„ë? ? íƒ?˜ì„¸??,
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.black87, decoration: TextDecoration.none),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '?œì´?„ëŠ” ë§??¼ìš´??ì¡°ì •?????ˆì–´??,
+                    style: TextStyle(fontSize: 13, color: Colors.black54, decoration: TextDecoration.none),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 22),
+                    _DifficultyButton(
+                      label: 'ë§¤ìš° ?¬ì?',
+                      color: const Color(0xFF66BB6A),
+                      icon: Icons.sentiment_very_satisfied_rounded,
+                      onPressed: () {
+                        _showAdvanceHintDialog(context, () {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => GameScreen(
+                                selected: selectedMarble,
+                                aiDifficulty: AIDifficulty.veryEasy,
+                              ),
+                            ),
+                          );
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _DifficultyButton(
+                      label: '?¬ì?',
+                      color: const Color(0xFF81C784),
+                      icon: Icons.sentiment_satisfied_alt_rounded,
+                      onPressed: () {
+                        _showAdvanceHintDialog(context, () {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => GameScreen(
+                                selected: selectedMarble,
+                                aiDifficulty: AIDifficulty.easy,
+                              ),
+                            ),
+                          );
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _DifficultyButton(
+                      label: 'ì¤‘ê°„',
+                      color: const Color(0xFFFFF176),
+                      icon: Icons.sentiment_neutral_rounded,
+                      onPressed: () {
+                        _showAdvanceHintDialog(context, () {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => GameScreen(
+                                selected: selectedMarble,
+                                aiDifficulty: AIDifficulty.medium,
+                              ),
+                            ),
+                          );
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _DifficultyButton(
+                      label: '?´ë ¤?€',
+                      color: const Color(0xFFFFB74D),
+                      icon: Icons.sentiment_dissatisfied_rounded,
+                      onPressed: () {
+                        _showAdvanceHintDialog(context, () {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => GameScreen(
+                                selected: selectedMarble,
+                                aiDifficulty: AIDifficulty.hard,
+                              ),
+                            ),
+                          );
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _DifficultyButton(
+                      label: 'ë§¤ìš° ?´ë ¤?€',
+                      color: const Color(0xFFE57373),
+                      icon: Icons.sentiment_very_dissatisfied_rounded,
+                      onPressed: () {
+                        _showAdvanceHintDialog(context, () {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => GameScreen(
+                                selected: selectedMarble,
+                                aiDifficulty: AIDifficulty.veryHard,
+                              ),
+                            ),
+                          );
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DifficultyButton extends StatelessWidget {
+  final String label;
+  final Color color;
+  final IconData icon;
+  final VoidCallback onPressed;
+  const _DifficultyButton({required this.label, required this.color, required this.icon, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: color.withOpacity(0.9), width: 1.2),
+          ),
+          elevation: 0,
+        ),
+        icon: Icon(icon, color: color),
+        label: Text(
+          label,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, decoration: TextDecoration.none),
+        ),
+      ),
+    );
+  }
+}
+
+void _showAdvanceHintDialog(BuildContext context, VoidCallback onStart) {
+  showGeneralDialog(
+    context: context,
+    barrierLabel: 'advance-hint',
+    barrierDismissible: true,
+    barrierColor: Colors.black45,
+    transitionDuration: const Duration(milliseconds: 260),
+    pageBuilder: (ctx, a1, a2) => const SizedBox.shrink(),
+    transitionBuilder: (ctx, anim, _, __) {
+      final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutBack, reverseCurve: Curves.easeIn);
+      return Opacity(
+        opacity: anim.value,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                child: Container(color: Colors.black.withOpacity(0.1)),
+              ),
+            ),
+            Center(
+              child: Transform.scale(
+                scale: 0.92 + 0.08 * curved.value,
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black26, blurRadius: 16, offset: Offset(0, 8)),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFFD54F), Color(0xFFFFA000)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 12, offset: const Offset(0, 6)),
+                          ],
+                        ),
+                        child: const Icon(Icons.emoji_events_rounded, color: Colors.white, size: 40),
+                      ),
+                      const SizedBox(height: 14),
+                      const Text(
+                        '?¨ê³„ ?¹ê¸‰ ?ˆë‚´',
+                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, decoration: TextDecoration.none),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'ê²Œìž„ ???ˆë‚´: 15?ì„ ë¨¼ì? ?ì ?˜ë©´\n?¤ìŒ ?¨ê³„ë¡??¬ë¼ê°‘ë‹ˆ??',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white, fontSize: 16, height: 1.35, decoration: TextDecoration.none),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'ë§¤ìš° ?´ë ¤?€ ?¨ê³„???¹ê¸‰???†ìŠµ?ˆë‹¤',
+                        style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12, decoration: TextDecoration.none),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            style: TextButton.styleFrom(foregroundColor: Colors.white70),
+                            child: const Text('?«ê¸°'),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.of(ctx).pop();
+                              onStart();
+                            },
+                            icon: const Icon(Icons.play_arrow_rounded),
+                            label: const Text('?œìž‘?˜ê¸°'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFFB300),
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              elevation: 2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
