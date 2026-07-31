@@ -1,6 +1,6 @@
 {
-    "name": "soccer_game",
-    "short_name": "soccer_game",
+    "name": "1:1 축구",
+    "short_name": "1:1 축구",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

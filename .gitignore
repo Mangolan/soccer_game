@@ -33,6 +33,11 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Release signing credentials must never be committed.
+/upload-keystore.jks
+/key.properties
+/android/key.properties
+
 # Symbolication related
 app.*.symbols
 

@@ -1,65 +1,92 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
+import 'package:flutter/services.dart';
+
+import 'animal_player.dart';
+import 'difficulty_unlocks.dart';
 import 'game/game_logic.dart';
 import 'game/game_widget.dart';
-import 'marble_face.dart';
-import 'marble_selection_screen2.dart';
 
-class GameScreen extends StatelessWidget {
-  final MarbleStyle selected;
-  final AIDifficulty aiDifficulty;
-  final MarbleExpression? selectedExpression;
-  final EyeStyle? selectedEyeStyle;
-  final bool selectedHumanize;
-  final bool selectedFlipMouth;
-  final int selectedIndex;
-
+class GameScreen extends StatefulWidget {
   const GameScreen({
     super.key,
-    required this.selected,
+    required this.selectedPlayer,
+    required this.aiPlayer,
     required this.aiDifficulty,
-    this.selectedExpression,
-    this.selectedEyeStyle,
-    this.selectedHumanize = false,
-    this.selectedFlipMouth = false,
     required this.selectedIndex,
+    required this.aiIndex,
   });
+
+  final AnimalPlayer selectedPlayer;
+  final AnimalPlayer aiPlayer;
+  final AIDifficulty aiDifficulty;
+  final int selectedIndex;
+  final int aiIndex;
+
+  @override
+  State<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends State<GameScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _setLandscapeMode();
+  }
+
+  Future<void> _setLandscapeMode() async {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final aiIndex = _randomAiIndexExcluding(selectedIndex);
-    final MarbleStyle aiStyle = MarbleSelectionScreen.samples[aiIndex];
-    final MarbleExpression aiExpr = MarbleSelectionScreen
-        .sampleExpressions[aiIndex % MarbleSelectionScreen.sampleExpressions.length];
-    final EyeStyle aiEyes = MarbleSelectionScreen
-        .eyeStyles[aiIndex % MarbleSelectionScreen.eyeStyles.length];
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Soccer Game'),
+        title: const Text('동물 축구'),
       ),
       body: GameWidget(
-        leftStyle: selected,
-        rightStyle: aiStyle,
-        initialRightExpression: aiExpr,
-        initialLeftExpression: selectedExpression,
-        leftEyeStyle: selectedEyeStyle,
-        leftHumanize: selectedHumanize,
-        leftFlipMouth: selectedFlipMouth,
-        rightEyeStyle: aiEyes,
-        rightHumanize: true,
-        rightFlipMouth: true,
-        aiDifficulty: aiDifficulty,
-        onAdvance: (next) {
+        leftPlayer: widget.selectedPlayer,
+        rightPlayer: widget.aiPlayer,
+        aiDifficulty: widget.aiDifficulty,
+        onRetreat: (prev) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (_) => GameScreen(
-                selected: selected,
+                selectedPlayer: widget.selectedPlayer,
+                aiPlayer: widget.aiPlayer,
+                aiDifficulty: prev,
+                selectedIndex: widget.selectedIndex,
+                aiIndex: widget.aiIndex,
+              ),
+            ),
+          );
+        },
+        onAdvance: (next) async {
+          await DifficultyUnlocks.unlockThrough(next);
+          if (!context.mounted) {
+            return;
+          }
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => GameScreen(
+                selectedPlayer: widget.selectedPlayer,
+                aiPlayer: widget.aiPlayer,
                 aiDifficulty: next,
-                selectedExpression: selectedExpression,
-                selectedEyeStyle: selectedEyeStyle,
-                selectedHumanize: selectedHumanize,
-                selectedFlipMouth: selectedFlipMouth,
-                selectedIndex: selectedIndex,
+                selectedIndex: widget.selectedIndex,
+                aiIndex: widget.aiIndex,
               ),
             ),
           );
@@ -72,23 +99,4 @@ class GameScreen extends StatelessWidget {
   }
 }
 
-int _randomAiIndexExcluding(int exclude) {
-  final total = MarbleSelectionScreen.samples.length;
-  final pool = List<int>.generate(total, (i) => i)..remove(exclude);
-  return pool[math.Random().nextInt(pool.length)];
-}
-
-String _difficultyLabel(AIDifficulty d) {
-  switch (d) {
-    case AIDifficulty.veryEasy:
-      return '매우 쉬움';
-    case AIDifficulty.easy:
-      return '쉬움';
-    case AIDifficulty.medium:
-      return '중간';
-    case AIDifficulty.hard:
-      return '어려움';
-    case AIDifficulty.veryHard:
-      return '매우 어려움';
-  }
-}
+String _difficultyLabel(AIDifficulty difficulty) => difficulty.label;

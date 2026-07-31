@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
-import 'marble_selection_screen2.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() {
+import 'firebase_options.dart';
+import 'player_selection_screen.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   runApp(const SoccerApp());
 }
 
@@ -11,14 +18,16 @@ class SoccerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Soccer Game',
+      title: '1:1 축구',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFFFF9EB5),
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
       ),
-      home: const MarbleSelectionScreen(),
+      home: const PlayerSelectionScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
-

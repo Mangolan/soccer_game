@@ -1,30 +1,23 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:soccer_game/main.dart';
+import 'package:soccer_game/player_selection_screen.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('app opens on player selection screen', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(const {});
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(const SoccerApp());
+    await tester.pump(const Duration(milliseconds: 100));
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.byType(PlayerSelectionScreen), findsOneWidget);
+    expect(find.text('선수 선택'), findsOneWidget);
+    expect(find.text('내 선수를 고르세요'), findsOneWidget);
+    expect(find.text('스피드'), findsWidgets);
+    expect(find.text('파워'), findsWidgets);
+    expect(find.text('토끼 선수로 시작'), findsOneWidget);
   });
 }

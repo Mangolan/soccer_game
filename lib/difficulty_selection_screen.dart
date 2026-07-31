@@ -1,163 +1,232 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'animal_player.dart';
+import 'difficulty_unlocks.dart';
 import 'game/game_logic.dart';
 import 'game_screen.dart';
-import 'marble_face.dart';
- 
 
-class DifficultySelectionScreen extends StatelessWidget {
-  final MarbleStyle selectedMarble;
-  final MarbleExpression? selectedExpression;
-  final EyeStyle? selectedEyeStyle;
-  final bool selectedHumanize;
-  final bool selectedFlipMouth;
-  final int selectedIndex;
-
+class DifficultySelectionScreen extends StatefulWidget {
   const DifficultySelectionScreen({
     super.key,
-    required this.selectedMarble,
-    this.selectedExpression,
-    this.selectedEyeStyle,
-    this.selectedHumanize = false,
-    this.selectedFlipMouth = false,
+    required this.selectedPlayer,
     required this.selectedIndex,
+    required this.aiPlayer,
+    required this.aiIndex,
   });
+
+  final AnimalPlayer selectedPlayer;
+  final int selectedIndex;
+  final AnimalPlayer aiPlayer;
+  final int aiIndex;
+
+  @override
+  State<DifficultySelectionScreen> createState() =>
+      _DifficultySelectionScreenState();
+}
+
+class _DifficultySelectionScreenState extends State<DifficultySelectionScreen> {
+  static const String _lastDifficultyKey = 'last_selected_difficulty';
+
+  int _maxUnlockedLevel = 1;
+  bool _loadingUnlocks = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnlocks();
+  }
+
+  Future<void> _loadUnlocks() async {
+    final maxUnlockedLevel = await DifficultyUnlocks.loadMaxUnlockedLevel();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _maxUnlockedLevel = maxUnlockedLevel;
+      _loadingUnlocks = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final levels = AIDifficulty.values;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI 난이도 선택'),
+        title: const Text('AI 레벨 선택'),
         backgroundColor: const Color(0xFF0A1931),
         foregroundColor: Colors.white,
         elevation: 0,
       ),
       backgroundColor: const Color(0xFF0A1931),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('컴퓨터(AI) 난이도를 선택하세요', style: TextStyle(fontSize: 18)),
-            const SizedBox(height: 30),
-            _difficultyButton(context, '매우 쉬움', () => _start(context, AIDifficulty.veryEasy)),
-            const SizedBox(height: 20),
-            _difficultyButton(context, '쉬움', () => _start(context, AIDifficulty.easy)),
-            const SizedBox(height: 20),
-            _difficultyButton(context, '중간', () => _start(context, AIDifficulty.medium)),
-            const SizedBox(height: 20),
-            _difficultyButton(context, '어려움', () => _start(context, AIDifficulty.hard)),
-            const SizedBox(height: 20),
-            _difficultyButton(context, '매우 어려움', () => _start(context, AIDifficulty.veryHard)),
-          ],
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 10, 24, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(width: double.infinity),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _playerPreview('내 선수', widget.selectedPlayer),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 22),
+                    child: Text(
+                      'VS',
+                      style: TextStyle(
+                        color: Color(0xFFFFD43B),
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  _playerPreview('랜덤 AI', widget.aiPlayer),
+                ],
+              ),
+              const SizedBox(height: 26),
+              Text(
+                _loadingUnlocks ? '레벨 정보를 불러오는 중...' : '대결할 AI 레벨을 선택하세요',
+                style: const TextStyle(fontSize: 18, color: Colors.white),
+              ),
+              const SizedBox(height: 36),
+              Wrap(
+                spacing: 14,
+                runSpacing: 14,
+                alignment: WrapAlignment.center,
+                children: levels
+                    .map(
+                      (difficulty) => _difficultyButton(
+                        context,
+                        difficulty.label,
+                        difficulty,
+                        locked:
+                            _loadingUnlocks ||
+                            difficulty.level > _maxUnlockedLevel,
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _difficultyButton(BuildContext context, String label, VoidCallback onTap) {
+  Widget _playerPreview(String label, AnimalPlayer player) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        AnimalPlush(player: player, size: 88, soccerUniform: true),
+        const SizedBox(height: 8),
+        Text(
+          player.name.replaceAll(' 인형', ''),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _difficultyButton(
+    BuildContext context,
+    String label,
+    AIDifficulty difficulty, {
+    required bool locked,
+  }) {
     return GestureDetector(
-      onTap: () => _showAdvanceHintDialog(context, onTap),
+      onTap: () => locked
+          ? _showLockedMessage(context, difficulty)
+          : _start(context, difficulty),
       child: Container(
-        width: 220,
+        width: 150,
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.3),
+          color: locked
+              ? Colors.black.withOpacity(0.18)
+              : Colors.black.withOpacity(0.3),
           borderRadius: BorderRadius.circular(15),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF00D9E1).withOpacity(0.4),
+              color: (locked ? Colors.grey : const Color(0xFF00D9E1))
+                  .withOpacity(0.35),
               blurRadius: 15,
               spreadRadius: 2,
             ),
-            BoxShadow(
-              color: const Color(0xFF0A1931).withOpacity(0.6),
-              blurRadius: 20,
-              spreadRadius: -5,
-              offset: const Offset(0, 5),
-            ),
           ],
           border: Border.all(
-            color: const Color(0xFF00D9E1).withOpacity(0.5),
+            color: (locked ? Colors.white38 : const Color(0xFF00D9E1))
+                .withOpacity(0.65),
             width: 1,
           ),
         ),
-        child: Center(
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (locked) ...[
+              const Icon(Icons.lock_rounded, color: Colors.white70, size: 18),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                color: locked ? Colors.white70 : Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.1,
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  void _start(BuildContext context, AIDifficulty d) {
-    Navigator.of(context).pushReplacement(
+  Future<void> _start(BuildContext context, AIDifficulty difficulty) async {
+    if (difficulty.level > _maxUnlockedLevel) {
+      _showLockedMessage(context, difficulty);
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_lastDifficultyKey, difficulty.name);
+    if (!mounted) {
+      return;
+    }
+
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => GameScreen(
-          selected: selectedMarble,
-          selectedExpression: selectedExpression,
-          selectedEyeStyle: selectedEyeStyle,
-          selectedHumanize: selectedHumanize,
-          selectedFlipMouth: selectedFlipMouth,
-          selectedIndex: selectedIndex,
-          aiDifficulty: d,
+          selectedPlayer: widget.selectedPlayer,
+          selectedIndex: widget.selectedIndex,
+          aiPlayer: widget.aiPlayer,
+          aiIndex: widget.aiIndex,
+          aiDifficulty: difficulty,
         ),
       ),
     );
+    if (!mounted) {
+      return;
+    }
+    await _loadUnlocks();
   }
-}
 
-void _showAdvanceHintDialog(BuildContext context, VoidCallback onStart) {
-  const Color glowColor = Color(0xFF00D9E1);
-
-  showDialog(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      backgroundColor: const Color(0xFF0A1931).withOpacity(0.95),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: glowColor.withOpacity(0.7), width: 1.5),
+  void _showLockedMessage(BuildContext context, AIDifficulty difficulty) {
+    final previousLevel = difficulty.level - 1;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Level $previousLevel을 이겨야 ${difficulty.label}이 열립니다.'),
       ),
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.emoji_events, color: Colors.amber.shade300, size: 28),
-          const SizedBox(width: 10),
-          const Text('단계 승급 안내', style: TextStyle(color: Colors.white)),
-        ],
-      ),
-      content: const Text(
-        '게임 전 안내:\n15점을 먼저 득점하면\n다음 단계로 올라갑니다\n(매우 어려움은 승급 없음)',
-        textAlign: TextAlign.center,
-        style: TextStyle(color: Colors.white70, height: 1.5),
-      ),
-      actionsAlignment: MainAxisAlignment.center,
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(),
-          child: const Text('닫기', style: TextStyle(color: Colors.white70)),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: glowColor,
-            foregroundColor: Colors.black,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          ),
-          onPressed: () {
-            Navigator.of(ctx).pop();
-            onStart();
-          },
-          child: const Text('시작하기', style: TextStyle(fontWeight: FontWeight.bold)),
-        ),
-      ],
-    ),
-  );
+    );
+  }
 }
