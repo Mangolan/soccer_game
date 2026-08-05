@@ -39,7 +39,7 @@ class _DifficultySelectionScreenState extends State<DifficultySelectionScreen> {
 
   Future<void> _loadUnlocks() async {
     final maxUnlockedLevel = await DifficultyUnlocks.loadMaxUnlockedLevel();
-    if (!mounted) {
+    if (!context.mounted) {
       return;
     }
     setState(() {
@@ -200,7 +200,7 @@ class _DifficultySelectionScreenState extends State<DifficultySelectionScreen> {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_lastDifficultyKey, difficulty.name);
-    if (!mounted) {
+    if (!context.mounted) {
       return;
     }
 

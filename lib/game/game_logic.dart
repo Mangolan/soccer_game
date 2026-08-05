@@ -75,9 +75,8 @@ class GameConfig {
   final double aiJumpChance;
   final double aiJumpWindow;
 
-  GameConfig({required AIDifficulty difficulty})
-    : difficulty = difficulty,
-      aiPlayerSpeed = _getAiPlayerSpeed(difficulty),
+  GameConfig({required this.difficulty})
+    : aiPlayerSpeed = _getAiPlayerSpeed(difficulty),
       aiJumpVelocity = _getAiJumpVelocity(difficulty),
       aiJumpCooldown = _getAiJumpCooldown(difficulty),
       aiKp = _getAiKp(difficulty),
@@ -91,9 +90,6 @@ class GameConfig {
       aiMistakeChance = _getAiMistakeChance(difficulty),
       aiJumpChance = _getAiJumpChance(difficulty),
       aiJumpWindow = _getAiJumpWindow(difficulty);
-
-  static double _value(AIDifficulty difficulty, List<double> values) =>
-      values[difficulty.index];
 
   static double _tierScale(AIDifficulty difficulty, int unlockLevel) {
     if (difficulty.level < unlockLevel) {
@@ -400,10 +396,12 @@ class GameState {
     final leftJumpPressedThisFrame = leftJump && !_leftJumpHeld;
     _leftJumpHeld = leftJump;
     // Net wobble decay timers
-    if (netWobbleLeftTime > 0)
+    if (netWobbleLeftTime > 0) {
       netWobbleLeftTime = (netWobbleLeftTime - dt).clamp(0, 10);
-    if (netWobbleRightTime > 0)
+    }
+    if (netWobbleRightTime > 0) {
       netWobbleRightTime = (netWobbleRightTime - dt).clamp(0, 10);
+    }
 
     // Celebration state: pause gameplay briefly with small hop
     if (celebrating) {
@@ -536,7 +534,6 @@ class GameState {
         ball.pos.dx > rightPlayer.pos.dx + GameConfig.playerRadius * 0.9;
     final veryEasy = difficultyLevel == 1;
     final veryEasyOnly = difficultyLevel == 1;
-    final easyOrBelow = difficultyLevel <= 2;
     final mediumOrBelow = difficultyLevel <= 5;
     final hardOrAbove = difficultyLevel >= 7;
     final counterOpportunity =

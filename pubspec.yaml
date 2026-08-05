@@ -1,5 +1,5 @@
 name: soccer_game
-description: "A new Flutter project."
+description: "로그인과 네트워크 연결 없이 즐기는 적응형 AI 1대1 축구 게임."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -36,8 +36,6 @@ dependencies:
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.2.3
   url_launcher: ^6.3.0
-  firebase_core: ^4.11.0
-  firebase_analytics: ^12.4.3
 
 dev_dependencies:
   flutter_test:

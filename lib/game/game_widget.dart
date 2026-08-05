@@ -39,7 +39,6 @@ class _GameWidgetState extends State<GameWidget>
   late GameState _game;
   double _cameraX = 0.0;
   double _time = 0.0;
-  bool _advanced = false;
   bool _resultHandled = false;
   late WeatherType _weather;
   final Set<LogicalKeyboardKey> _pressedKeys = <LogicalKeyboardKey>{};
@@ -110,7 +109,6 @@ class _GameWidgetState extends State<GameWidget>
 
     if (_game.score.left >= 10 && _game.score.left > _game.score.right) {
       _resultHandled = true;
-      _advanced = true;
       _ticker.stop();
       final next = _nextDifficulty(widget.aiDifficulty);
       if (mounted) {
@@ -367,7 +365,6 @@ class _GameWidgetState extends State<GameWidget>
 
   void _restartCurrentMatch() {
     _resetInputs();
-    _advanced = false;
     _resultHandled = false;
     _game.score.left = 0;
     _game.score.right = 0;
@@ -926,36 +923,6 @@ class _FieldPainter extends CustomPainter {
 
     if (weather == WeatherType.dayRain || weather == WeatherType.cloudyRain) {
       _drawRainOverlay(canvas, size);
-    }
-  }
-
-  List<Color> _skyColors() {
-    switch (weather) {
-      case WeatherType.dayClear:
-        return const [Color(0xFF90CAF9), Color(0xFFE3F2FD)];
-      case WeatherType.dayRain:
-        return const [Color(0xFF9EC5DB), Color(0xFFE6EEF5)];
-      case WeatherType.cloudy:
-        return const [Color(0xFFB0BEC5), Color(0xFFECEFF1)];
-      case WeatherType.cloudyRain:
-        return const [Color(0xFF9EACB4), Color(0xFFDDE3E6)];
-    }
-  }
-
-  (Color, Color) _grassColors() {
-    switch (weather) {
-      case WeatherType.dayClear:
-      case WeatherType.dayRain:
-        return (
-          const Color(0xFF2e7d32).withOpacity(0.92),
-          const Color(0xFF388e3c).withOpacity(0.92),
-        );
-      case WeatherType.cloudy:
-      case WeatherType.cloudyRain:
-        return (
-          const Color(0xFF2e7d32).withOpacity(0.82),
-          const Color(0xFF336E30).withOpacity(0.82),
-        );
     }
   }
 

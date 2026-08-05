@@ -117,75 +117,74 @@ class _MarbleSelectionScreenState extends State<MarbleSelectionScreen>
     with TickerProviderStateMixin {
   static const String _lastSelectedAnimalKey = 'last_selected_animal_index';
   static const String _privacyPolicyUrl =
-      'https://mangolan.github.io/Soccer_game_policy/';
+      'https://github.com/Mangolan/soccer_game/blob/main/privacy_policy.html';
 
   final math.Random _random = math.Random();
-  final List<_CraneDisplayPlayer> _displayPlayers =
-      const <_CraneDisplayPlayer>[
-        _CraneDisplayPlayer(
-          playerIndex: 2,
-          x: 0.12,
-          y: 0.73,
-          rotation: -0.08,
-          scale: 1.08,
-        ),
-        _CraneDisplayPlayer(
-          playerIndex: 1,
-          x: 0.29,
-          y: 0.62,
-          rotation: 0.06,
-          scale: 1.12,
-        ),
-        _CraneDisplayPlayer(
-          playerIndex: 0,
-          x: 0.49,
-          y: 0.79,
-          rotation: -0.02,
-          scale: 1.02,
-        ),
-        _CraneDisplayPlayer(
-          playerIndex: 3,
-          x: 0.66,
-          y: 0.64,
-          rotation: 0.16,
-          scale: 1.08,
-        ),
-        _CraneDisplayPlayer(
-          playerIndex: 4,
-          x: 0.84,
-          y: 0.74,
-          rotation: -0.08,
-          scale: 1.05,
-        ),
-        _CraneDisplayPlayer(
-          playerIndex: 5,
-          x: 0.38,
-          y: 0.84,
-          rotation: -0.34,
-          scale: 0.92,
-        ),
-        _CraneDisplayPlayer(
-          playerIndex: 6,
-          x: 0.57,
-          y: 0.88,
-          rotation: 0.18,
-          scale: 0.90,
-        ),
-        _CraneDisplayPlayer(
-          playerIndex: 7,
-          x: 0.21,
-          y: 0.88,
-          rotation: -0.16,
-          scale: 0.94,
-        ),
-        _CraneDisplayPlayer(
-          playerIndex: 8,
-          x: 0.79,
-          y: 0.88,
-          rotation: 0.14,
-          scale: 0.94,
-        ),
-      ];
+  final List<_CraneDisplayPlayer> _displayPlayers = const <_CraneDisplayPlayer>[
+    _CraneDisplayPlayer(
+      playerIndex: 2,
+      x: 0.12,
+      y: 0.73,
+      rotation: -0.08,
+      scale: 1.08,
+    ),
+    _CraneDisplayPlayer(
+      playerIndex: 1,
+      x: 0.29,
+      y: 0.62,
+      rotation: 0.06,
+      scale: 1.12,
+    ),
+    _CraneDisplayPlayer(
+      playerIndex: 0,
+      x: 0.49,
+      y: 0.79,
+      rotation: -0.02,
+      scale: 1.02,
+    ),
+    _CraneDisplayPlayer(
+      playerIndex: 3,
+      x: 0.66,
+      y: 0.64,
+      rotation: 0.16,
+      scale: 1.08,
+    ),
+    _CraneDisplayPlayer(
+      playerIndex: 4,
+      x: 0.84,
+      y: 0.74,
+      rotation: -0.08,
+      scale: 1.05,
+    ),
+    _CraneDisplayPlayer(
+      playerIndex: 5,
+      x: 0.38,
+      y: 0.84,
+      rotation: -0.34,
+      scale: 0.92,
+    ),
+    _CraneDisplayPlayer(
+      playerIndex: 6,
+      x: 0.57,
+      y: 0.88,
+      rotation: 0.18,
+      scale: 0.90,
+    ),
+    _CraneDisplayPlayer(
+      playerIndex: 7,
+      x: 0.21,
+      y: 0.88,
+      rotation: -0.16,
+      scale: 0.94,
+    ),
+    _CraneDisplayPlayer(
+      playerIndex: 8,
+      x: 0.79,
+      y: 0.88,
+      rotation: 0.14,
+      scale: 0.94,
+    ),
+  ];
 
   late final AnimationController _craneController;
   late final AnimationController _danceController;
@@ -195,7 +194,6 @@ class _MarbleSelectionScreenState extends State<MarbleSelectionScreen>
   _CraneDisplayPlayer? _targetPlayer;
   _GripSpot? _gripSpot;
   final List<int?> _pickedPlayerIndices = <int?>[null, null];
-  int? _lastSelectedIndex;
   bool _success = false;
   int _plays = 0;
   int _lastRegisteredPlay = -1;
@@ -203,12 +201,13 @@ class _MarbleSelectionScreenState extends State<MarbleSelectionScreen>
   @override
   void initState() {
     super.initState();
-    _craneController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 3200),
-    )
-      ..addListener(_onCraneTick)
-      ..addStatusListener(_onCraneStatus);
+    _craneController =
+        AnimationController(
+            vsync: this,
+            duration: const Duration(milliseconds: 3200),
+          )
+          ..addListener(_onCraneTick)
+          ..addStatusListener(_onCraneStatus);
     _danceController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
@@ -232,7 +231,6 @@ class _MarbleSelectionScreenState extends State<MarbleSelectionScreen>
 
     final lastSlot = _slotForIndex(storedIndex);
     setState(() {
-      _lastSelectedIndex = storedIndex;
       if (lastSlot != null) {
         _clawX = lastSlot.x.clamp(0.08, 0.92);
       }
@@ -262,7 +260,9 @@ class _MarbleSelectionScreenState extends State<MarbleSelectionScreen>
 
   AnimalPlayer? _pickedPlayerAt(int slotIndex) {
     final playerIndex = _pickedPlayerIndices[slotIndex];
-    return playerIndex == null ? null : MarbleSelectionScreen.players[playerIndex];
+    return playerIndex == null
+        ? null
+        : MarbleSelectionScreen.players[playerIndex];
   }
 
   void _onCraneTick() {
@@ -270,18 +270,16 @@ class _MarbleSelectionScreenState extends State<MarbleSelectionScreen>
     final nextPhase = value < 0.27
         ? _GamePhase.dropping
         : value < 0.39
-            ? _GamePhase.grabbing
-            : value < 0.52
-                ? _GamePhase.lifting
-                : value < 0.70
-                    ? _GamePhase.movingToPrizeHole
-                        : value < 0.82
-                        ? _GamePhase.shaking
-                        : value < 0.90
-                            ? (_success
-                                ? _GamePhase.successDrop
-                                : _GamePhase.failedDrop)
-                            : _GamePhase.result;
+        ? _GamePhase.grabbing
+        : value < 0.52
+        ? _GamePhase.lifting
+        : value < 0.70
+        ? _GamePhase.movingToPrizeHole
+        : value < 0.82
+        ? _GamePhase.shaking
+        : value < 0.90
+        ? (_success ? _GamePhase.successDrop : _GamePhase.failedDrop)
+        : _GamePhase.result;
 
     if (nextPhase != _phase) {
       setState(() {
@@ -314,11 +312,12 @@ class _MarbleSelectionScreenState extends State<MarbleSelectionScreen>
     final pickedSlot = _targetPlayer!;
     _lastRegisteredPlay = _plays;
     setState(() {
-      final emptySlot = _pickedPlayerIndices.indexWhere((index) => index == null);
+      final emptySlot = _pickedPlayerIndices.indexWhere(
+        (index) => index == null,
+      );
       if (emptySlot != -1) {
         _pickedPlayerIndices[emptySlot] = pickedSlot.playerIndex;
       }
-      _lastSelectedIndex = pickedSlot.playerIndex;
     });
     _persistLastSelection(pickedSlot.playerIndex);
     HapticFeedback.mediumImpact();
@@ -398,10 +397,12 @@ class _MarbleSelectionScreenState extends State<MarbleSelectionScreen>
     final candidates = _displayPlayers
         .where((candidate) => !pickedIndices.contains(candidate.playerIndex))
         .toList(growable: false);
-    _CraneDisplayPlayer best =
-        candidates.isNotEmpty ? candidates.first : _displayPlayers.first;
+    _CraneDisplayPlayer best = candidates.isNotEmpty
+        ? candidates.first
+        : _displayPlayers.first;
     var bestDistance = double.infinity;
-    for (final candidate in candidates.isNotEmpty ? candidates : _displayPlayers) {
+    for (final candidate
+        in candidates.isNotEmpty ? candidates : _displayPlayers) {
       final distance = (_clawX - candidate.x).abs();
       if (distance < bestDistance) {
         bestDistance = distance;
@@ -496,7 +497,8 @@ class _MarbleSelectionScreenState extends State<MarbleSelectionScreen>
 
     var selected = 1;
     final firstPlayer = MarbleSelectionScreen.players[_pickedPlayerIndices[0]!];
-    final secondPlayer = MarbleSelectionScreen.players[_pickedPlayerIndices[1]!];
+    final secondPlayer =
+        MarbleSelectionScreen.players[_pickedPlayerIndices[1]!];
 
     return showDialog<int>(
       context: context,
@@ -634,7 +636,8 @@ class _MarbleSelectionScreenState extends State<MarbleSelectionScreen>
             final compact = constraints.maxHeight < 720;
             final firstPlayer = _pickedPlayerAt(0);
             final secondPlayer = _pickedPlayerAt(1);
-            final secondPickInProgress = _pickedCount == 1 &&
+            final secondPickInProgress =
+                _pickedCount == 1 &&
                 _plays > _pickedCount &&
                 _targetPlayer != null &&
                 _craneController.isAnimating;
@@ -800,10 +803,7 @@ class _HeaderBearIcon extends StatelessWidget {
     return SizedBox(
       width: 34,
       height: 38,
-      child: AnimalPlush(
-        player: MarbleSelectionScreen.players[1],
-        size: 34,
-      ),
+      child: AnimalPlush(player: MarbleSelectionScreen.players[1], size: 34),
     );
   }
 }
@@ -897,8 +897,9 @@ class _CraneMachine extends StatelessWidget {
         final prizeHoleY = glassHeight * 0.84;
         final railY = 34.0;
         final targetX = target?.x ?? clawX;
-        final targetToyY =
-            target == null ? toyBaseTop + 0.70 * 34 : toyBaseTop + target.y * 34;
+        final targetToyY = target == null
+            ? toyBaseTop + 0.70 * 34
+            : toyBaseTop + target.y * 34;
 
         final down = Curves.easeInOut.transform(
           _segment(controllerValue, 0.00, 0.27),
@@ -918,21 +919,25 @@ class _CraneMachine extends StatelessWidget {
 
         final targetToyHeight = (target?.scale ?? 1.0) * 64 * 1.08;
         final activeGripSpot = gripSpot ?? _GripSpot.waist;
-        final gripPointY = targetToyY + targetToyHeight * activeGripSpot.verticalRatio;
-        final maxDropToToy =
-            (gripPointY - railY - 126).clamp(20.0, glassHeight * 0.44);
+        final gripPointY =
+            targetToyY + targetToyHeight * activeGripSpot.verticalRatio;
+        final maxDropToToy = (gripPointY - railY - 126).clamp(
+          20.0,
+          glassHeight * 0.44,
+        );
 
         final clawXBeforeHole = (width - 72) * targetX;
         final clawXAtHole = prizeHoleX - 36;
         final clawXHome = (width - 72) * clawX;
-        final clawLeft = phase == _GamePhase.ready ||
+        final clawLeft =
+            phase == _GamePhase.ready ||
                 phase == _GamePhase.dropping ||
                 phase == _GamePhase.grabbing ||
                 phase == _GamePhase.lifting
             ? clawXHome
             : phase == _GamePhase.result
-                ? _lerp(clawXAtHole, clawXHome, returnHome)
-                : _lerp(clawXBeforeHole, clawXAtHole, moveHole);
+            ? _lerp(clawXAtHole, clawXHome, returnHome)
+            : _lerp(clawXBeforeHole, clawXAtHole, moveHole);
 
         final clawTop = railY + (down * maxDropToToy) - (lift * maxDropToToy);
         final shakeOffset = phase == _GamePhase.shaking
@@ -940,7 +945,8 @@ class _CraneMachine extends StatelessWidget {
             : 0.0;
         final successDropLeft = prizeHoleX - 32;
         final successDropTop = prizeHoleY - 38 + drop * 58;
-        final failDropLeft = clawLeft + 7 + shakeOffset + math.sin(controllerValue * 28) * 18;
+        final failDropLeft =
+            clawLeft + 7 + shakeOffset + math.sin(controllerValue * 28) * 18;
         final failDropTop = clawTop + activeGripSpot.carriedToyTop + drop * 95;
         final droppedPlayerLeft = success ? successDropLeft : failDropLeft;
         final droppedPlayerTop = success ? successDropTop : failDropTop;
@@ -979,8 +985,8 @@ class _CraneMachine extends StatelessWidget {
                     player: success && target != null
                         ? players[target.playerIndex]
                         : pickedPlayerIndices.isNotEmpty
-                            ? players[pickedPlayerIndices.last]
-                            : null,
+                        ? players[pickedPlayerIndices.last]
+                        : null,
                   ),
                 ),
                 Positioned(
@@ -1187,8 +1193,8 @@ class _MachineTopBanner extends StatelessWidget {
     final isResult = phase == _GamePhase.result;
     final title = isResult
         ? (success && player != null
-            ? '${_animalLabel(player!)} 획득!'
-            : '아쉽지만 다시 도전!')
+              ? '${_animalLabel(player!)} 획득!'
+              : '아쉽지만 다시 도전!')
         : '럭키 선수뽑기';
 
     return AnimatedSwitcher(
@@ -1198,9 +1204,7 @@ class _MachineTopBanner extends StatelessWidget {
         height: 42,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: isResult
-              ? const Color(0xFFFFEEF4)
-              : const Color(0xFFFFF0A8),
+          color: isResult ? const Color(0xFFFFEEF4) : const Color(0xFFFFF0A8),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: isResult ? const Color(0xFFFF9DB8) : Colors.transparent,
@@ -1351,10 +1355,7 @@ class _PrizeHole extends StatelessWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFFFFEEF4),
                 borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: const Color(0xFFFF9DB8),
-                  width: 1.5,
-                ),
+                border: Border.all(color: const Color(0xFFFF9DB8), width: 1.5),
               ),
               child: const Text(
                 'OUT',
@@ -1389,15 +1390,16 @@ class _Claw extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final closed = phase == _GamePhase.grabbing ||
+    final closed =
+        phase == _GamePhase.grabbing ||
         phase == _GamePhase.lifting ||
         phase == _GamePhase.movingToPrizeHole ||
         phase == _GamePhase.shaking;
     final squeezing = phase == _GamePhase.grabbing
         ? math.sin(shakeValue * 70).abs() * 0.22
         : 0.0;
-    final openForDrop = phase == _GamePhase.failedDrop ||
-            phase == _GamePhase.successDrop
+    final openForDrop =
+        phase == _GamePhase.failedDrop || phase == _GamePhase.successDrop
         ? 0.48
         : 0.0;
     final angle = closed ? 0.32 - squeezing + openForDrop : 0.88;
@@ -1529,7 +1531,8 @@ class _PreviewStage extends StatelessWidget {
         builder: (context, constraints) {
           final cardWidth = constraints.maxWidth;
           final cardHeight = constraints.maxHeight;
-          final plushSize = math.min(cardWidth * 0.23, cardHeight * 0.50)
+          final plushSize = math
+              .min(cardWidth * 0.23, cardHeight * 0.50)
               .clamp(52.0, 92.0);
           final bounce = math.sin(danceValue * math.pi * 2);
           final lift = bounce * 8;
@@ -1537,9 +1540,7 @@ class _PreviewStage extends StatelessWidget {
           return Stack(
             children: [
               Positioned.fill(
-                child: CustomPaint(
-                  painter: _StageSparklePainter(danceValue),
-                ),
+                child: CustomPaint(painter: _StageSparklePainter(danceValue)),
               ),
               Positioned(
                 left: 18,
@@ -1657,10 +1658,7 @@ class _PreviewStage extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                       color: const Color(0xFFFFD46B),
                       shadows: const [
-                        Shadow(
-                          color: Color(0xAAFF6F00),
-                          blurRadius: 8,
-                        ),
+                        Shadow(color: Color(0xAAFF6F00), blurRadius: 8),
                         Shadow(
                           color: Color(0xAA000000),
                           blurRadius: 3,
@@ -1700,9 +1698,7 @@ class _PreviewStage extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(.28),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(.22),
-                      ),
+                      border: Border.all(color: Colors.white.withOpacity(.22)),
                     ),
                     child: const Text(
                       '두 번째 선수를 뽑아보세요!',
@@ -1807,11 +1803,7 @@ class _DancingPlayer extends StatelessWidget {
       scaleY: scale,
       child: Transform.rotate(
         angle: angle,
-        child: AnimalPlush(
-          player: player,
-          size: size,
-          soccerUniform: true,
-        ),
+        child: AnimalPlush(player: player, size: size, soccerUniform: true),
       ),
     );
   }
@@ -1840,8 +1832,7 @@ class _StageSparklePainter extends CustomPainter {
         const Color(0xFFFFE27A),
         const Color(0xFFFF7AC9),
         i / stars.length,
-      )!
-          .withOpacity(.45 + .35 * pulse);
+      )!.withOpacity(.45 + .35 * pulse);
       _drawStar(canvas, stars[i], 4 + pulse * 3, paint);
     }
   }
@@ -2013,11 +2004,7 @@ class _RedrawDialogOption extends StatelessWidget {
                   ),
                 ),
               ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: color,
-                size: 24,
-              ),
+              Icon(Icons.chevron_right_rounded, color: color, size: 24),
             ],
           ),
         ),
@@ -2027,10 +2014,7 @@ class _RedrawDialogOption extends StatelessWidget {
 }
 
 class _RedrawButton extends StatelessWidget {
-  const _RedrawButton({
-    required this.disabled,
-    required this.onTap,
-  });
+  const _RedrawButton({required this.disabled, required this.onTap});
 
   final bool disabled;
   final VoidCallback onTap;
@@ -2061,11 +2045,7 @@ class _RedrawButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.shuffle_rounded,
-                color: Color(0xFFFF6F91),
-                size: 21,
-              ),
+              Icon(Icons.shuffle_rounded, color: Color(0xFFFF6F91), size: 21),
               SizedBox(width: 7),
               Text(
                 '다시 뽑기',
